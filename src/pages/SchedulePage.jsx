@@ -1,4 +1,5 @@
-// Agenda do dia (tela inicial pós-login)
-export default function SchedulePage() {
-  return null;
+function SchedulePage() {
+  return <h1 className="text-2xl font-bold p-6">Schedule page (placeholder)</h1>
 }
+
+export default SchedulePage
