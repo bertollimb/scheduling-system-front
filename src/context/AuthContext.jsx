@@ -1,13 +1,37 @@
-import { createContext, useContext } from "react";
+import { createContext, useContext, useState } from 'react'
+import { login as loginRequest } from '../api/auth'
 
-// Guarda o token, expõe login/logout para o app todo
-const AuthContext = createContext(null);
+const AuthContext = createContext(null)
 
 export function AuthProvider({ children }) {
-  // TODO: gerenciar estado do token e expor login/logout
-  return <AuthContext.Provider value={null}>{children}</AuthContext.Provider>;
+  const [isAuthenticated, setIsAuthenticated] = useState(
+    () => !!localStorage.getItem('access_token')
+  )
+
+  async function login(email, password) {
+    const data = await loginRequest(email, password)
+    localStorage.setItem('access_token', data.access_token)
+    localStorage.setItem('refresh_token', data.refresh_token)
+    setIsAuthenticated(true)
+  }
+
+  function logout() {
+    localStorage.removeItem('access_token')
+    localStorage.removeItem('refresh_token')
+    setIsAuthenticated(false)
+  }
+
+  return (
+    <AuthContext.Provider value={{ isAuthenticated, login, logout }}>
+      {children}
+    </AuthContext.Provider>
+  )
 }
 
 export function useAuth() {
-  return useContext(AuthContext);
+  const context = useContext(AuthContext)
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider')
+  }
+  return context
 }
