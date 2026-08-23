@@ -1,4 +1,12 @@
-// TODO: redirecionar para login quando não houver usuário autenticado (usar AuthContext)
-export default function ProtectedRoute({ children }) {
-  return children;
+import { Navigate } from 'react-router-dom'
+import { useAuth } from '../../context/AuthContext'
+
+export function ProtectedRoute({ children }) {
+  const { isAuthenticated } = useAuth()
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />
+  }
+
+  return children
 }
