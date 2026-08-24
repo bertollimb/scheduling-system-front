@@ -15,6 +15,7 @@ function NewSchedulingPage() {
   const [clients, setClients] = useState([])
   const [services, setServices] = useState([])
   const [availableEvaluations, setAvailableEvaluations] = useState([])
+  const [highlightedDates, setHighlightedDates] = useState([])
 
   const [clientId, setClientId] = useState('')
   const [serviceId, setServiceId] = useState('')
@@ -33,6 +34,7 @@ function NewSchedulingPage() {
 
   useEffect(() => {
     loadClientsAndServices()
+    loadHighlightedDates()
   }, [])
 
   useEffect(() => {
@@ -54,6 +56,22 @@ function NewSchedulingPage() {
       setServices(servicesData)
     } catch {
       setError('Failed to load clients or services')
+    }
+  }
+
+  async function loadHighlightedDates() {
+    // Same approach as SchedulePage: no month-range filter on the API,
+    // so we fetch all schedulings once and derive which days already
+    // have at least one confirmed scheduling, so the user can spot busy
+    // days before picking a time.
+    try {
+      const all = await listSchedulings()
+      const dates = all
+        .filter((s) => s.status === 'confirmed')
+        .map((s) => s.start_time.split('T')[0])
+      setHighlightedDates([...new Set(dates)])
+    } catch {
+      // non-critical: highlighting just won't show if this fails
     }
   }
 
@@ -201,7 +219,11 @@ function NewSchedulingPage() {
           Start date and time
         </label>
         <div className="col-span-2 flex items-center gap-2">
-          <DatePicker selected={selectedDate} onSelect={setSelectedDate} />
+          <DatePicker
+            selected={selectedDate}
+            onSelect={setSelectedDate}
+            highlightedDates={highlightedDates}
+          />
           <select
             value={hour}
             onChange={(e) => setHour(e.target.value)}
