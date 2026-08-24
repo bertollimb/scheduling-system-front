@@ -1,11 +1,10 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { format } from 'date-fns'
 import { listSchedulings, cancelScheduling } from '../api/schedulings'
 import { listClients } from '../api/clients'
 import { listServices } from '../api/services'
-
-function formatDate(date) {
-  return date.toISOString().split('T')[0]
-}
+import DatePicker from '../components/ui/DatePicker'
 
 function formatTime(isoString) {
   return new Date(isoString).toLocaleTimeString('en-GB', {
@@ -15,10 +14,13 @@ function formatTime(isoString) {
 }
 
 function SchedulePage() {
-  const [selectedDate, setSelectedDate] = useState(() => formatDate(new Date()))
+  const navigate = useNavigate()
+
+  const [selectedDate, setSelectedDate] = useState(new Date())
   const [schedulings, setSchedulings] = useState([])
   const [clientsById, setClientsById] = useState({})
   const [servicesById, setServicesById] = useState({})
+  const [highlightedDates, setHighlightedDates] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
 
@@ -38,15 +40,33 @@ function SchedulePage() {
       ])
       setClientsById(Object.fromEntries(clients.map((c) => [c.id, c])))
       setServicesById(Object.fromEntries(services.map((s) => [s.id, s])))
+      await loadHighlightedDates()
     } catch {
       setError('Failed to load clients or services')
+    }
+  }
+
+  async function loadHighlightedDates() {
+    // No month-range filter on the API, so we fetch all schedulings once
+    // and derive which calendar days have at least one confirmed
+    // scheduling. Fine at this project's scale; would need a proper
+    // date-range endpoint if the dataset grew significantly.
+    try {
+      const all = await listSchedulings()
+      const dates = all
+        .filter((s) => s.status === 'confirmed')
+        .map((s) => s.start_time.split('T')[0])
+      setHighlightedDates([...new Set(dates)])
+    } catch {
+      // non-critical: highlighting just won't show if this fails
     }
   }
 
   async function loadSchedulings() {
     setIsLoading(true)
     try {
-      const data = await listSchedulings(selectedDate)
+      const dateParam = format(selectedDate, 'yyyy-MM-dd')
+      const data = await listSchedulings(dateParam)
       setSchedulings(data)
     } catch {
       setError('Failed to load schedulings')
@@ -61,6 +81,7 @@ function SchedulePage() {
     try {
       await cancelScheduling(schedulingId)
       await loadSchedulings()
+      await loadHighlightedDates()
     } catch {
       setError('Failed to cancel (must be at least 24h before start time)')
     }
@@ -79,12 +100,19 @@ function SchedulePage() {
     <div className="p-6">
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-bold text-gray-800">Schedule</h1>
-        <input
-          type="date"
-          value={selectedDate}
-          onChange={(e) => setSelectedDate(e.target.value)}
-          className="rounded border border-gray-300 px-3 py-2"
-        />
+        <div className="flex items-center gap-3">
+          <DatePicker
+            selected={selectedDate}
+            onSelect={setSelectedDate}
+            highlightedDates={highlightedDates}
+          />
+          <button
+            onClick={() => navigate('/schedulings/new')}
+            className="rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+          >
+            + New Scheduling
+          </button>
+        </div>
       </div>
 
       {error && (
