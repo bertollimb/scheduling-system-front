@@ -105,6 +105,7 @@ function SchedulePage() {
             selected={selectedDate}
             onSelect={setSelectedDate}
             highlightedDates={highlightedDates}
+            align="right"
           />
           <button
             onClick={() => navigate('/schedulings/new')}
