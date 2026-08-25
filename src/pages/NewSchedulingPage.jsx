@@ -24,6 +24,8 @@ function NewSchedulingPage() {
   const [selectedDate, setSelectedDate] = useState(null)
   const [hour, setHour] = useState('10')
   const [minute, setMinute] = useState('00')
+  const [durationHours, setDurationHours] = useState('')
+  const [durationMinutes, setDurationMinutes] = useState('')
 
   const [error, setError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -31,6 +33,13 @@ function NewSchedulingPage() {
   const selectedService = services.find((s) => s.id === Number(serviceId))
   const needsEvaluationLink =
     type === 'procedure' && selectedService?.requires_evaluation
+
+  // Custom duration only makes sense for a plain procedure on a service
+  // that doesn't require an evaluation - evaluations are always fixed at
+  // 1h, and evaluation-required services always get their duration from
+  // the completed evaluation instead.
+  const allowsCustomDuration =
+    type === 'procedure' && selectedService && !selectedService.requires_evaluation
 
   useEffect(() => {
     loadClientsAndServices()
@@ -46,6 +55,20 @@ function NewSchedulingPage() {
     }
   }, [clientId, serviceId, selectedService])
 
+  useEffect(() => {
+    // Pre-fill the duration fields with the service's default whenever a
+    // service eligible for a custom duration is selected, so the user
+    // starts from the usual value and only adjusts when this particular
+    // appointment is expected to take more or less time.
+    if (allowsCustomDuration && selectedService?.duration_minutes) {
+      setDurationHours(String(Math.floor(selectedService.duration_minutes / 60)))
+      setDurationMinutes(String(selectedService.duration_minutes % 60))
+    } else {
+      setDurationHours('')
+      setDurationMinutes('')
+    }
+  }, [serviceId, type, selectedService, allowsCustomDuration])
+
   async function loadClientsAndServices() {
     try {
       const [clientsData, servicesData] = await Promise.all([
@@ -60,10 +83,9 @@ function NewSchedulingPage() {
   }
 
   async function loadHighlightedDates() {
-    // Same approach as SchedulePage: no month-range filter on the API,
-    // so we fetch all schedulings once and derive which days already
-    // have at least one confirmed scheduling, so the user can spot busy
-    // days before picking a time.
+    // No date-range filter on the API, so we fetch all schedulings once
+    // and derive which calendar days have at least one confirmed
+    // scheduling, so the user can spot busy days before picking a time.
     try {
       const all = await listSchedulings()
       const dates = all
@@ -124,6 +146,15 @@ function NewSchedulingPage() {
 
       if (needsEvaluationLink) {
         payload.evaluation_id = Number(evaluationId)
+      }
+
+      if (allowsCustomDuration) {
+        const hoursValue = Number(durationHours) || 0
+        const minutesValue = Number(durationMinutes) || 0
+        const totalMinutes = hoursValue * 60 + minutesValue
+        if (totalMinutes > 0) {
+          payload.duration_minutes = totalMinutes
+        }
       }
 
       await createScheduling(payload)
@@ -248,6 +279,35 @@ function NewSchedulingPage() {
             ))}
           </select>
         </div>
+
+        {allowsCustomDuration && (
+          <div className="col-span-2 flex items-center gap-2">
+            <label className="text-sm text-gray-600">Duration:</label>
+            <input
+              value={durationHours}
+              onChange={(e) => setDurationHours(e.target.value)}
+              type="number"
+              min="0"
+              placeholder="0"
+              className="w-16 rounded border border-gray-300 px-3 py-2"
+            />
+            <span className="text-sm text-gray-600">h</span>
+            <input
+              value={durationMinutes}
+              onChange={(e) => setDurationMinutes(e.target.value)}
+              type="number"
+              min="0"
+              max="59"
+              placeholder="0"
+              className="w-16 rounded border border-gray-300 px-3 py-2"
+            />
+            <span className="text-sm text-gray-600">min</span>
+            <span className="text-xs text-gray-400">
+              (defaults to the service's usual duration; adjust if this
+              appointment will take more or less time)
+            </span>
+          </div>
+        )}
 
         {selectedService?.category &&
           ['hair_treatment', 'straightening'].includes(

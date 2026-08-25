@@ -36,15 +36,25 @@ function ClientsPage() {
     setForm((prev) => ({ ...prev, [name]: value }))
   }
 
+  function buildPayload() {
+    return {
+      first_name: form.first_name,
+      last_name: form.last_name,
+      phone: form.phone,
+      email: form.email.trim() === '' ? null : form.email.trim(),
+    }
+  }
+
   async function handleSubmit(event) {
     event.preventDefault()
     setError('')
 
     try {
+      const payload = buildPayload()
       if (editingId) {
-        await updateClient(editingId, form)
+        await updateClient(editingId, payload)
       } else {
-        await createClient(form)
+        await createClient(payload)
       }
       setForm(emptyForm)
       setEditingId(null)
