@@ -1,7 +1,11 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { format } from 'date-fns'
-import { listSchedulings, cancelScheduling } from '../api/schedulings'
+import {
+  listSchedulings,
+  cancelScheduling,
+  completeEvaluation,
+} from '../api/schedulings'
 import { listClients } from '../api/clients'
 import { listServices } from '../api/services'
 import DatePicker from '../components/ui/DatePicker'
@@ -23,6 +27,10 @@ function SchedulePage() {
   const [highlightedDates, setHighlightedDates] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
+
+  const [completingId, setCompletingId] = useState(null)
+  const [completionHours, setCompletionHours] = useState('')
+  const [completionMinutes, setCompletionMinutes] = useState('')
 
   useEffect(() => {
     loadInitialData()
@@ -47,7 +55,7 @@ function SchedulePage() {
   }
 
   async function loadHighlightedDates() {
-    // No month-range filter on the API, so we fetch all schedulings once
+    // No date-range filter on the API, so we fetch all schedulings once
     // and derive which calendar days have at least one confirmed
     // scheduling. Fine at this project's scale; would need a proper
     // date-range endpoint if the dataset grew significantly.
@@ -87,6 +95,42 @@ function SchedulePage() {
     }
   }
 
+  function handleStartComplete(schedulingId) {
+    setCompletingId(schedulingId)
+    setCompletionHours('')
+    setCompletionMinutes('')
+    setError('')
+  }
+
+  function handleCancelComplete() {
+    setCompletingId(null)
+    setCompletionHours('')
+    setCompletionMinutes('')
+  }
+
+  async function handleSubmitComplete(schedulingId) {
+    const hours = Number(completionHours) || 0
+    const minutes = Number(completionMinutes) || 0
+    const totalMinutes = hours * 60 + minutes
+
+    if (totalMinutes < 300 || totalMinutes > 480) {
+      setError('Estimated duration must be between 5 and 8 hours')
+      return
+    }
+
+    setError('')
+
+    try {
+      await completeEvaluation(schedulingId, totalMinutes)
+      setCompletingId(null)
+      await loadSchedulings()
+    } catch (err) {
+      setError(
+        err.response?.data?.detail ?? 'Failed to complete evaluation'
+      )
+    }
+  }
+
   function clientName(clientId) {
     const client = clientsById[clientId]
     return client ? `${client.first_name} ${client.last_name}` : `#${clientId}`
@@ -117,7 +161,7 @@ function SchedulePage() {
       </div>
 
       {error && (
-        <p className="mb-4 rounded bg-red-50 p-2 text-sm text-red-600">
+        <p className="mb-4 max-w-3xl rounded bg-red-50 p-2 text-sm text-red-600">
           {error}
         </p>
       )}
@@ -139,28 +183,81 @@ function SchedulePage() {
             </tr>
           </thead>
           <tbody>
-            {schedulings.map((scheduling) => (
-              <tr key={scheduling.id} className="border-t border-gray-100">
-                <td className="p-3">
-                  {formatTime(scheduling.start_time)} -{' '}
-                  {formatTime(scheduling.end_time)}
-                </td>
-                <td className="p-3">{clientName(scheduling.client_id)}</td>
-                <td className="p-3">{serviceName(scheduling.service_id)}</td>
-                <td className="p-3 capitalize">{scheduling.type}</td>
-                <td className="p-3 capitalize">{scheduling.status}</td>
-                <td className="p-3">
-                  {scheduling.status === 'confirmed' && (
-                    <button
-                      onClick={() => handleCancel(scheduling.id)}
-                      className="text-sm text-red-600 hover:underline"
-                    >
-                      Cancel
-                    </button>
-                  )}
-                </td>
-              </tr>
-            ))}
+            {schedulings.map((scheduling) => {
+              const needsCompletion =
+                scheduling.type === 'evaluation' &&
+                scheduling.status === 'confirmed' &&
+                scheduling.estimated_duration_minutes === null
+
+              return (
+                <tr key={scheduling.id} className="border-t border-gray-100">
+                  <td className="p-3">
+                    {formatTime(scheduling.start_time)} -{' '}
+                    {formatTime(scheduling.end_time)}
+                  </td>
+                  <td className="p-3">{clientName(scheduling.client_id)}</td>
+                  <td className="p-3">{serviceName(scheduling.service_id)}</td>
+                  <td className="p-3 capitalize">{scheduling.type}</td>
+                  <td className="p-3 capitalize">{scheduling.status}</td>
+                  <td className="p-3">
+                    {completingId === scheduling.id ? (
+                      <div className="flex items-center gap-1">
+                        <input
+                          value={completionHours}
+                          onChange={(e) => setCompletionHours(e.target.value)}
+                          type="number"
+                          min="0"
+                          placeholder="h"
+                          className="w-12 rounded border border-gray-300 px-1 py-1 text-sm"
+                        />
+                        <span className="text-xs text-gray-500">h</span>
+                        <input
+                          value={completionMinutes}
+                          onChange={(e) => setCompletionMinutes(e.target.value)}
+                          type="number"
+                          min="0"
+                          max="59"
+                          placeholder="min"
+                          className="w-12 rounded border border-gray-300 px-1 py-1 text-sm"
+                        />
+                        <span className="text-xs text-gray-500">min</span>
+                        <button
+                          onClick={() => handleSubmitComplete(scheduling.id)}
+                          className="text-sm text-blue-600 hover:underline"
+                        >
+                          Save
+                        </button>
+                        <button
+                          onClick={handleCancelComplete}
+                          className="text-sm text-gray-500 hover:underline"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-3">
+                        {needsCompletion && (
+                          <button
+                            onClick={() => handleStartComplete(scheduling.id)}
+                            className="text-sm text-blue-600 hover:underline"
+                          >
+                            Complete evaluation
+                          </button>
+                        )}
+                        {scheduling.status === 'confirmed' && (
+                          <button
+                            onClick={() => handleCancel(scheduling.id)}
+                            className="text-sm text-red-600 hover:underline"
+                          >
+                            Cancel
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </td>
+                </tr>
+              )
+            })}
           </tbody>
         </table>
       )}
