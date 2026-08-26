@@ -2,6 +2,8 @@
 
 The web interface for [scheduling-system](https://github.com/bertollimb/scheduling-system), a backend API for managing appointments at a single-professional hair salon. Built as the client the salon owner actually uses day to day — login, agenda, clients, services, and creating/completing appointments — consuming the real API, not a mock.
 
+**Live app:** https://scheduling-system-front.vercel.app
+
 ## Table of contents
 
 - [About](#about)
@@ -71,6 +73,7 @@ src/
 - **Evaluation-to-procedure flow mirrors the backend's business rules** in the UI: the evaluation/procedure type selector only appears for services that require one; the list of completed evaluations available to link is fetched and filtered client-side (no dedicated backend endpoint for this), but the backend remains the actual source of truth and re-validates everything on submit.
 - **Editable procedure duration**: added after demoing the system — a fixed default duration per service (e.g. "corte" = 30 min) didn't reflect that the same service can take anywhere from 10 minutes to an hour depending on the client. The duration field is pre-filled with the service's default and only shown for procedures on services that don't require an evaluation (evaluation-required services always get their duration from the completed evaluation instead).
 - **Request bodies use snake_case** (`first_name`, `estimated_duration_minutes`, etc.), matching the backend's Pydantic schemas exactly, rather than converting to/from camelCase.
+- **SPA fallback rewrite (`vercel.json`)**: Vercel resolves each URL as a filesystem path by default, which breaks direct access or a refresh on any client-side route (e.g. `/schedulings/new`) with a platform-level 404 before the app ever loads. A catch-all rewrite to `index.html` lets React Router handle routing client-side regardless of how the route was reached.
 
 ---
 
@@ -108,7 +111,9 @@ There's no public sign-up page, since only one account is expected to exist. The
 
 ## Deployment
 
-Intended to be deployed on [Vercel](https://vercel.com), pointing `VITE_API_URL` at the deployed backend on Render. Deployment is not live yet.
+Deployed on [Vercel](https://vercel.com): **https://scheduling-system-front.vercel.app**
+
+`VITE_API_URL` is set as a Vercel environment variable, pointing at the backend deployed on Render. The backend's `ALLOWED_ORIGINS` includes this Vercel URL, since the API's CORS middleware would otherwise reject requests from it.
 
 ---
 
