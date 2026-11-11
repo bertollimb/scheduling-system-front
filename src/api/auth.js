@@ -15,6 +15,17 @@ export async function login(email, password) {
   return response.data
 }
 
+export async function logout(refresh_token) {
+  // The access token goes in the Authorization header (request
+  // interceptor). skipAuthRefresh: a 401 here must not start a refresh,
+  // and the short timeout keeps a slow backend from blocking the logout.
+  await apiClient.post(
+    '/auth/logout',
+    { refresh_token },
+    { skipAuthRefresh: true, timeout: 5000 }
+  )
+}
+
 export async function refreshToken(refresh_token) {
   const response = await apiClient.post(
     '/auth/refresh',
