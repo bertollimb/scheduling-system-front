@@ -5,6 +5,7 @@ const links = [
   { to: '/schedule', label: 'Schedule' },
   { to: '/clients', label: 'Clients' },
   { to: '/services', label: 'Services' },
+  { to: '/change-password', label: 'Change password' },
 ]
 
 function Sidebar() {
