@@ -26,16 +26,6 @@ export async function logout(refresh_token) {
   )
 }
 
-export async function changePassword(current_password, new_password) {
-  // Returns a new token pair: every token issued before the change is
-  // revoked by the backend.
-  const response = await apiClient.post('/auth/change-password', {
-    current_password,
-    new_password,
-  })
-  return response.data
-}
-
 export async function refreshToken(refresh_token) {
   const response = await apiClient.post(
     '/auth/refresh',

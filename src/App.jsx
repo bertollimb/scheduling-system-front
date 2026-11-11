@@ -6,7 +6,6 @@ import SchedulePage from './pages/SchedulePage'
 import ClientsPage from './pages/ClientsPage'
 import ServicesPage from './pages/ServicesPage'
 import NewSchedulingPage from './pages/NewSchedulingPage'
-import ChangePasswordPage from './pages/ChangePasswordPage'
 
 function App() {
   return (
@@ -25,7 +24,6 @@ function App() {
           <Route path="/clients" element={<ClientsPage />} />
           <Route path="/services" element={<ServicesPage />} />
           <Route path="/schedulings/new" element={<NewSchedulingPage />} />
-          <Route path="/change-password" element={<ChangePasswordPage />} />
         </Route>
 
         <Route path="/" element={<Navigate to="/schedule" replace />} />
