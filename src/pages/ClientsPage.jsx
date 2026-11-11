@@ -173,7 +173,7 @@ function ClientsPage() {
                 <td className="p-3">
                   {client.first_name} {client.last_name}
                 </td>
-                <td className="p-3">{client.phone}</td>
+                <td className="p-3">{client.phone || '-'}</td>
                 <td className="p-3">{client.email || '-'}</td>
                 <td className="flex gap-2 p-3">
                   <button
