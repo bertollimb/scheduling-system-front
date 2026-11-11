@@ -1,8 +1,13 @@
-import apiClient from './client'
+import apiClient, { readTotalCount } from './client'
 
 export async function listClients() {
   const response = await apiClient.get('/clients')
   return response.data
+}
+
+export async function listClientsWithTotal() {
+  const response = await apiClient.get('/clients')
+  return { items: response.data, total: readTotalCount(response) }
 }
 
 export async function getClient(clientId) {

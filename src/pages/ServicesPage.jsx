@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import {
-  listServices,
+  listServicesWithTotal,
   createService,
   updateService,
   deleteService,
@@ -24,6 +24,7 @@ const emptyForm = {
 
 function ServicesPage() {
   const [services, setServices] = useState([])
+  const [totalCount, setTotalCount] = useState(null)
   const [isLoading, setIsLoading] = useState(true)
   const [form, setForm] = useState(emptyForm)
   const [editingId, setEditingId] = useState(null)
@@ -36,8 +37,9 @@ function ServicesPage() {
   async function loadServices() {
     setIsLoading(true)
     try {
-      const data = await listServices()
-      setServices(data)
+      const { items, total } = await listServicesWithTotal()
+      setServices(items)
+      setTotalCount(total)
     } catch {
       setError('Failed to load services')
     } finally {
@@ -232,6 +234,12 @@ function ServicesPage() {
           )}
         </div>
       </form>
+
+      {!isLoading && totalCount !== null && totalCount > services.length && (
+        <p className="mb-2 text-sm text-gray-500">
+          Showing {services.length} of {totalCount}
+        </p>
+      )}
 
       {isLoading ? (
         <p className="text-gray-500">Loading...</p>

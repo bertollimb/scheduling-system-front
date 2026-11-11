@@ -1,5 +1,6 @@
 import { createContext, useContext, useState } from 'react'
-import { login as loginRequest } from '../api/auth'
+import { login as loginRequest, logout as logoutRequest } from '../api/auth'
+import { setTokens, clearTokens } from '../api/client'
 
 const AuthContext = createContext(null)
 
@@ -10,15 +11,21 @@ export function AuthProvider({ children }) {
 
   async function login(email, password) {
     const data = await loginRequest(email, password)
-    localStorage.setItem('access_token', data.access_token)
-    localStorage.setItem('refresh_token', data.refresh_token)
+    setTokens(data.access_token, data.refresh_token)
     setIsAuthenticated(true)
   }
 
-  function logout() {
-    localStorage.removeItem('access_token')
-    localStorage.removeItem('refresh_token')
-    setIsAuthenticated(false)
+  async function logout() {
+    try {
+      await logoutRequest(localStorage.getItem('refresh_token'))
+    } catch {
+      // Revoking on the server is best effort: on a network error, a 503
+      // or an expired token the local session is still cleared below, so
+      // the user is never stuck logged in.
+    } finally {
+      clearTokens()
+      setIsAuthenticated(false)
+    }
   }
 
   return (

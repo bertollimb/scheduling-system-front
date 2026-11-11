@@ -5,14 +5,15 @@ const links = [
   { to: '/schedule', label: 'Schedule' },
   { to: '/clients', label: 'Clients' },
   { to: '/services', label: 'Services' },
+  { to: '/change-password', label: 'Change password' },
 ]
 
 function Sidebar() {
   const { logout } = useAuth()
   const navigate = useNavigate()
 
-  function handleLogout() {
-    logout()
+  async function handleLogout() {
+    await logout()
     navigate('/login')
   }
 

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import {
-  listClients,
+  listClientsWithTotal,
   createClient,
   updateClient,
   deleteClient,
@@ -10,6 +10,7 @@ const emptyForm = { first_name: '', last_name: '', phone: '', email: '' }
 
 function ClientsPage() {
   const [clients, setClients] = useState([])
+  const [totalCount, setTotalCount] = useState(null)
   const [isLoading, setIsLoading] = useState(true)
   const [form, setForm] = useState(emptyForm)
   const [editingId, setEditingId] = useState(null)
@@ -22,8 +23,9 @@ function ClientsPage() {
   async function loadClients() {
     setIsLoading(true)
     try {
-      const data = await listClients()
-      setClients(data)
+      const { items, total } = await listClientsWithTotal()
+      setClients(items)
+      setTotalCount(total)
     } catch {
       setError('Failed to load clients')
     } finally {
@@ -154,6 +156,12 @@ function ClientsPage() {
           )}
         </div>
       </form>
+
+      {!isLoading && totalCount !== null && totalCount > clients.length && (
+        <p className="mb-2 text-sm text-gray-500">
+          Showing {clients.length} of {totalCount}
+        </p>
+      )}
 
       {isLoading ? (
         <p className="text-gray-500">Loading...</p>
