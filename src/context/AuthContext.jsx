@@ -1,5 +1,6 @@
 import { createContext, useContext, useState } from 'react'
 import { login as loginRequest } from '../api/auth'
+import { setTokens, clearTokens } from '../api/client'
 
 const AuthContext = createContext(null)
 
@@ -10,14 +11,12 @@ export function AuthProvider({ children }) {
 
   async function login(email, password) {
     const data = await loginRequest(email, password)
-    localStorage.setItem('access_token', data.access_token)
-    localStorage.setItem('refresh_token', data.refresh_token)
+    setTokens(data.access_token, data.refresh_token)
     setIsAuthenticated(true)
   }
 
   function logout() {
-    localStorage.removeItem('access_token')
-    localStorage.removeItem('refresh_token')
+    clearTokens()
     setIsAuthenticated(false)
   }
 
