@@ -40,7 +40,7 @@ function ClientsPage() {
     return {
       first_name: form.first_name,
       last_name: form.last_name,
-      phone: form.phone,
+      phone: form.phone.trim() || null,
       email: form.email.trim() === '' ? null : form.email.trim(),
     }
   }
@@ -69,7 +69,7 @@ function ClientsPage() {
     setForm({
       first_name: client.first_name,
       last_name: client.last_name,
-      phone: client.phone,
+      phone: client.phone ?? '',
       email: client.email ?? '',
     })
   }
@@ -124,8 +124,7 @@ function ClientsPage() {
           name="phone"
           value={form.phone}
           onChange={handleChange}
-          placeholder="Phone"
-          required
+          placeholder="Phone (optional)"
           className="rounded border border-gray-300 px-3 py-2"
         />
         <input
@@ -174,7 +173,7 @@ function ClientsPage() {
                 <td className="p-3">
                   {client.first_name} {client.last_name}
                 </td>
-                <td className="p-3">{client.phone}</td>
+                <td className="p-3">{client.phone || '-'}</td>
                 <td className="p-3">{client.email || '-'}</td>
                 <td className="flex gap-2 p-3">
                   <button
