@@ -5,6 +5,7 @@ import {
   listSchedulings,
   cancelScheduling,
   completeEvaluation,
+  isActiveStatus,
 } from '../api/schedulings'
 import { listClients } from '../api/clients'
 import { listServices } from '../api/services'
@@ -15,6 +16,26 @@ function formatTime(isoString) {
     hour: '2-digit',
     minute: '2-digit',
   })
+}
+
+const statusBadges = {
+  confirmed: { label: 'Confirmed', className: 'bg-blue-50 text-blue-700' },
+  completed: { label: 'Completed', className: 'bg-green-50 text-green-700' },
+  cancelled: { label: 'Cancelled', className: 'bg-red-50 text-red-600' },
+}
+
+function StatusBadge({ status }) {
+  const badge = statusBadges[status] ?? {
+    label: status,
+    className: 'bg-gray-100 text-gray-600',
+  }
+  return (
+    <span
+      className={`rounded px-2 py-0.5 text-xs font-medium capitalize ${badge.className}`}
+    >
+      {badge.label}
+    </span>
+  )
 }
 
 function SchedulePage() {
@@ -56,13 +77,13 @@ function SchedulePage() {
 
   async function loadHighlightedDates() {
     // No date-range filter on the API, so we fetch all schedulings once
-    // and derive which calendar days have at least one confirmed
-    // scheduling. Fine at this project's scale; would need a proper
-    // date-range endpoint if the dataset grew significantly.
+    // and derive which calendar days have at least one confirmed (or
+    // completed) scheduling. Fine at this project's scale; would need a
+    // proper date-range endpoint if the dataset grew significantly.
     try {
       const all = await listSchedulings()
       const dates = all
-        .filter((s) => s.status === 'confirmed')
+        .filter((s) => isActiveStatus(s.status))
         .map((s) => s.start_time.split('T')[0])
       setHighlightedDates([...new Set(dates)])
     } catch {
@@ -186,7 +207,7 @@ function SchedulePage() {
             {schedulings.map((scheduling) => {
               const needsCompletion =
                 scheduling.type === 'evaluation' &&
-                scheduling.status === 'confirmed' &&
+                isActiveStatus(scheduling.status) &&
                 scheduling.estimated_duration_minutes === null
 
               return (
@@ -198,7 +219,9 @@ function SchedulePage() {
                   <td className="p-3">{clientName(scheduling.client_id)}</td>
                   <td className="p-3">{serviceName(scheduling.service_id)}</td>
                   <td className="p-3 capitalize">{scheduling.type}</td>
-                  <td className="p-3 capitalize">{scheduling.status}</td>
+                  <td className="p-3">
+                    <StatusBadge status={scheduling.status} />
+                  </td>
                   <td className="p-3">
                     {completingId === scheduling.id ? (
                       <div className="flex items-center gap-1">
@@ -244,7 +267,7 @@ function SchedulePage() {
                             Complete evaluation
                           </button>
                         )}
-                        {scheduling.status === 'confirmed' && (
+                        {isActiveStatus(scheduling.status) && (
                           <button
                             onClick={() => handleCancel(scheduling.id)}
                             className="text-sm text-red-600 hover:underline"

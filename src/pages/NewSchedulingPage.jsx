@@ -3,7 +3,11 @@ import { useNavigate } from 'react-router-dom'
 import { format } from 'date-fns'
 import { listClients } from '../api/clients'
 import { listServices } from '../api/services'
-import { createScheduling, listSchedulings } from '../api/schedulings'
+import {
+  createScheduling,
+  listSchedulings,
+  isActiveStatus,
+} from '../api/schedulings'
 import DatePicker from '../components/ui/DatePicker'
 
 const hourOptions = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0'))
@@ -84,12 +88,13 @@ function NewSchedulingPage() {
 
   async function loadHighlightedDates() {
     // No date-range filter on the API, so we fetch all schedulings once
-    // and derive which calendar days have at least one confirmed
-    // scheduling, so the user can spot busy days before picking a time.
+    // and derive which calendar days have at least one confirmed (or
+    // completed) scheduling, so the user can spot busy days before
+    // picking a time.
     try {
       const all = await listSchedulings()
       const dates = all
-        .filter((s) => s.status === 'confirmed')
+        .filter((s) => isActiveStatus(s.status))
         .map((s) => s.start_time.split('T')[0])
       setHighlightedDates([...new Set(dates)])
     } catch {
@@ -101,13 +106,15 @@ function NewSchedulingPage() {
     try {
       // No date filter: fetch all schedulings and filter client-side for
       // completed, confirmed evaluations matching this client and service.
+      // Past evaluations come back with status "completed" but are still
+      // confirmed for the backend, so both statuses are eligible.
       // The backend still rejects an already-used or mismatched evaluation
       // on submit, so this is a convenience list, not the source of truth.
       const all = await listSchedulings()
       const matches = all.filter(
         (s) =>
           s.type === 'evaluation' &&
-          s.status === 'confirmed' &&
+          isActiveStatus(s.status) &&
           s.client_id === Number(clientId) &&
           s.service_id === Number(serviceId) &&
           s.estimated_duration_minutes !== null

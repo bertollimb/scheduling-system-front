@@ -1,5 +1,13 @@
 import apiClient from './client'
 
+// The API reports a past confirmed scheduling as "completed", but it is
+// still stored and treated as confirmed by every backend rule (it can be
+// cancelled, completed as an evaluation and linked to a procedure), so
+// all action/eligibility logic must treat both values the same way.
+export function isActiveStatus(status) {
+  return status === 'confirmed' || status === 'completed'
+}
+
 export async function listSchedulings(date) {
   const response = await apiClient.get('/schedulings', {
     params: date ? { date } : {},
