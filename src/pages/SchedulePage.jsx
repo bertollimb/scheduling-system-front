@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { format } from 'date-fns'
 import {
   listSchedulings,
+  listSchedulingsWithTotal,
   cancelScheduling,
   completeEvaluation,
   isActiveStatus,
@@ -43,6 +44,7 @@ function SchedulePage() {
 
   const [selectedDate, setSelectedDate] = useState(new Date())
   const [schedulings, setSchedulings] = useState([])
+  const [totalCount, setTotalCount] = useState(null)
   const [clientsById, setClientsById] = useState({})
   const [servicesById, setServicesById] = useState({})
   const [highlightedDates, setHighlightedDates] = useState([])
@@ -95,8 +97,9 @@ function SchedulePage() {
     setIsLoading(true)
     try {
       const dateParam = format(selectedDate, 'yyyy-MM-dd')
-      const data = await listSchedulings(dateParam)
-      setSchedulings(data)
+      const { items, total } = await listSchedulingsWithTotal(dateParam)
+      setSchedulings(items)
+      setTotalCount(total)
     } catch {
       setError('Failed to load schedulings')
     } finally {
@@ -184,6 +187,12 @@ function SchedulePage() {
       {error && (
         <p className="mb-4 max-w-3xl rounded bg-red-50 p-2 text-sm text-red-600">
           {error}
+        </p>
+      )}
+
+      {!isLoading && totalCount !== null && totalCount > schedulings.length && (
+        <p className="mb-2 text-sm text-gray-500">
+          Showing {schedulings.length} of {totalCount}
         </p>
       )}
 

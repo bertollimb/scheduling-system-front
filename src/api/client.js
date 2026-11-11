@@ -14,6 +14,13 @@ export function clearTokens() {
   localStorage.removeItem('refresh_token')
 }
 
+// List endpoints return the total number of rows in X-Total-Count, while
+// the body is capped by the API's page limit. Returns null if missing.
+export function readTotalCount(response) {
+  const total = Number(response.headers['x-total-count'])
+  return Number.isFinite(total) ? total : null
+}
+
 function endSession() {
   clearTokens()
   window.location.href = '/login'

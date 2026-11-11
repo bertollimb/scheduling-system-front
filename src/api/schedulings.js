@@ -1,4 +1,4 @@
-import apiClient from './client'
+import apiClient, { readTotalCount } from './client'
 
 // The API reports a past confirmed scheduling as "completed", but it is
 // still stored and treated as confirmed by every backend rule (it can be
@@ -13,6 +13,13 @@ export async function listSchedulings(date) {
     params: date ? { date } : {},
   })
   return response.data
+}
+
+export async function listSchedulingsWithTotal(date) {
+  const response = await apiClient.get('/schedulings', {
+    params: date ? { date } : {},
+  })
+  return { items: response.data, total: readTotalCount(response) }
 }
 
 export async function getScheduling(schedulingId) {
